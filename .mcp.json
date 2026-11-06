@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "checklist": {
+      "command": "node",
+      "args": ["mcp/index.js"],
+      "env": {
+        "CHECKLIST_EMAIL": "${CHECKLIST_EMAIL}",
+        "CHECKLIST_PASSWORD": "${CHECKLIST_PASSWORD}"
+      }
+    }
+  }
+}

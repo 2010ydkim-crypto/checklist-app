@@ -32,6 +32,16 @@
 | `supabase.sql` | 할 일 테이블과 보안 규칙을 만드는 SQL |
 | `supabase/config.toml` | Supabase 로그인 설정 (사이트 주소, 이메일 인증) |
 | `배포안내.md` | Supabase 연결 · Vercel 배포 단계별 안내 |
+| `mcp/` | Claude에서 할 일을 다루는 MCP 서버 |
+| `.mcp.json` | Claude Code용 MCP 서버 등록 설정 |
+
+## 🤖 Claude에서 쓰기 (MCP)
+
+`mcp/` 폴더의 MCP 서버를 연결하면 Claude에게 말로 체크리스트를 관리할 수 있습니다.
+
+> "오늘 할 일 보여줘" · "내일 할 일에 '보고서 제출' 추가해줘" · "이번 주 진행률 요약해줘"
+
+설치와 연결 방법은 [mcp/README.md](mcp/README.md)를 참고하세요.
 
 ## 보안
 
