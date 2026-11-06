@@ -2,3 +2,4 @@ mcp
 .mcp.json
 supabase
 *.md
+.claude
