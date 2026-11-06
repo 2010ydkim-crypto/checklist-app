@@ -19,7 +19,39 @@ Claude(Claude Code, Claude Desktop 등)에서 [체크리스트 사이트](https:
 
 로그인한 계정 **본인의 할 일만** 다룹니다 (Supabase RLS 보안 규칙).
 
-## 준비
+## 빠른 설치 (저장소 내려받기 없이, 공유용)
+
+필요한 것: [Node.js](https://nodejs.org) 18 이상, [체크리스트 사이트](https://checklist-app-omega-eight.vercel.app) 계정
+
+**Claude Code** — 한 줄로 등록 (이메일·비밀번호는 본인 것으로)
+
+```bash
+claude mcp add checklist --scope user -e CHECKLIST_EMAIL=내이메일@example.com -e CHECKLIST_PASSWORD=내비밀번호 -- npx -y github:2010ydkim-crypto/checklist-app
+```
+
+**Claude Desktop** — 설정 → 개발자 → 설정 편집 → `claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "checklist": {
+      "command": "npx",
+      "args": ["-y", "github:2010ydkim-crypto/checklist-app"],
+      "env": {
+        "CHECKLIST_EMAIL": "내이메일@example.com",
+        "CHECKLIST_PASSWORD": "내비밀번호"
+      }
+    }
+  }
+}
+```
+
+Windows에서 `npx`를 찾지 못하면 `"command": "cmd"`, `"args": ["/c", "npx", "-y", "github:2010ydkim-crypto/checklist-app"]` 로 바꾸세요.
+설정 저장 후 Claude 앱을 **완전히 종료했다가 다시 실행**하면 연결됩니다. 첫 실행은 내려받기 때문에 10~30초 걸릴 수 있습니다.
+
+> 비밀번호가 설정 파일에 그대로 저장됩니다. 공유하는 화면·파일에 설정 내용이 노출되지 않게 주의하세요.
+
+## 직접 설치 (저장소를 내려받아 개발할 때)
 
 1. [체크리스트 사이트](https://checklist-app-omega-eight.vercel.app)에서 회원가입합니다.
 2. 패키지를 설치합니다.

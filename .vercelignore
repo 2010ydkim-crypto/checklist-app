@@ -3,3 +3,6 @@ mcp
 supabase
 *.md
 .claude
+package.json
+package-lock.json
+*.tgz

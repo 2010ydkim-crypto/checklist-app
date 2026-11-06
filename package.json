@@ -1,0 +1,21 @@
+{
+  "name": "checklist-mcp",
+  "version": "1.1.0",
+  "private": true,
+  "description": "체크리스트 앱(Supabase)의 할 일을 Claude에서 조회·추가·수정·삭제·복구·이력 조회하는 MCP 서버. 설치: npx -y github:2010ydkim-crypto/checklist-app",
+  "type": "module",
+  "bin": {
+    "checklist-mcp": "mcp/index.js"
+  },
+  "files": [
+    "mcp/index.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@supabase/supabase-js": "^2.119.0",
+    "zod": "^4.6.7"
+  }
+}
