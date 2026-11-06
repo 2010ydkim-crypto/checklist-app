@@ -23,10 +23,21 @@ Claude(Claude Code, Claude Desktop 등)에서 [체크리스트 사이트](https:
 
 필요한 것: [Node.js](https://nodejs.org) 18 이상, [체크리스트 사이트](https://checklist-app-omega-eight.vercel.app) 계정
 
-**Claude Code** — 한 줄로 등록 (이메일·비밀번호는 본인 것으로)
+### 1. 설치 (한 번만, 약 1분)
 
 ```bash
-claude mcp add checklist --scope user -e CHECKLIST_EMAIL=내이메일@example.com -e CHECKLIST_PASSWORD=내비밀번호 -- npx -y github:2010ydkim-crypto/checklist-app
+npm install -g github:2010ydkim-crypto/checklist-app
+```
+
+PowerShell에서 "스크립트를 실행할 수 없으므로" 오류가 나면 `npm` 대신 `npm.cmd` 로 실행하세요.
+설치하면 `checklist-mcp` 명령이 생깁니다. 업데이트도 같은 명령을 다시 실행하면 됩니다.
+
+### 2. Claude에 등록 (이메일·비밀번호는 본인 것으로)
+
+**Claude Code**
+
+```bash
+claude mcp add checklist --scope user -e CHECKLIST_EMAIL=내이메일@example.com -e CHECKLIST_PASSWORD=내비밀번호 -- checklist-mcp
 ```
 
 **Claude Desktop** — 설정 → 개발자 → 설정 편집 → `claude_desktop_config.json`
@@ -35,8 +46,7 @@ claude mcp add checklist --scope user -e CHECKLIST_EMAIL=내이메일@example.co
 {
   "mcpServers": {
     "checklist": {
-      "command": "npx",
-      "args": ["-y", "github:2010ydkim-crypto/checklist-app"],
+      "command": "checklist-mcp",
       "env": {
         "CHECKLIST_EMAIL": "내이메일@example.com",
         "CHECKLIST_PASSWORD": "내비밀번호"
@@ -46,10 +56,20 @@ claude mcp add checklist --scope user -e CHECKLIST_EMAIL=내이메일@example.co
 }
 ```
 
-Windows에서 `npx`를 찾지 못하면 `"command": "cmd"`, `"args": ["/c", "npx", "-y", "github:2010ydkim-crypto/checklist-app"]` 로 바꾸세요.
-설정 저장 후 Claude 앱을 **완전히 종료했다가 다시 실행**하면 연결됩니다. 첫 실행은 내려받기 때문에 10~30초 걸릴 수 있습니다.
+Windows에서 `checklist-mcp`를 찾지 못한다는 오류가 나면 `"command": "cmd"`, `"args": ["/c", "checklist-mcp"]` 로 바꾸세요.
+
+### 3. 다시 시작
+
+Claude 앱을 **완전히 종료했다가 다시 실행**한 뒤 "체크리스트 오늘 할 일 보여줘"라고 물어보세요.
 
 > 비밀번호가 설정 파일에 그대로 저장됩니다. 공유하는 화면·파일에 설정 내용이 노출되지 않게 주의하세요.
+
+<details>
+<summary>설치 없이 npx 로 바로 실행 (느림)</summary>
+
+`"command": "npx"`, `"args": ["-y", "github:2010ydkim-crypto/checklist-app"]` 로도 실행됩니다.
+다만 실행할 때마다 GitHub를 확인해 연결까지 50초 이상 걸릴 수 있어, 연결 시간 초과가 날 수 있습니다. 위의 설치 방식을 권장합니다.
+</details>
 
 ## 직접 설치 (저장소를 내려받아 개발할 때)
 
