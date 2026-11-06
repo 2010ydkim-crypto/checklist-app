@@ -1,0 +1,12 @@
+# Supabase 원격 프로젝트 설정 (supabase config push 로 적용)
+# 여기에 적은 항목만 바뀌고, 적지 않은 항목은 그대로 유지됩니다.
+project_id = "checklist-app"
+
+[auth]
+# 인증 메일의 링크가 돌아올 주소 = Vercel 사이트 주소
+site_url = "https://checklist-app-omega-eight.vercel.app"
+additional_redirect_urls = ["https://checklist-app-omega-eight.vercel.app", "http://localhost:3000"]
+
+[auth.email]
+# 실습용: 가입 즉시 로그인 (이메일 인증 생략). 정식 운영 시 true 로 바꾸고 다시 push 하세요.
+enable_confirmations = false
