@@ -9,10 +9,12 @@ Claude(Claude Code, Claude Desktop 등)에서 [체크리스트 사이트](https:
 
 | 도구 | 하는 일 |
 |---|---|
-| `list_items` | 할 일 조회 — 특정 날짜(기본: 오늘), 기간(from~to), 전체, 진행 중/완료 필터 |
+| `list_items` | 할 일 조회 — 특정 날짜(기본: 오늘), 기간(from~to), 전체, 진행 중/완료/삭제됨 필터 |
 | `add_items` | 할 일 여러 개를 한 번에 추가 (기본: 오늘) |
 | `update_item` | 완료 체크, 내용 수정, 다른 날짜로 옮기기 |
-| `delete_items` | 할 일 삭제 |
+| `delete_items` | 할 일 삭제 (실제로 지우지 않고 삭제 표시 → 복구 가능) |
+| `restore_items` | 삭제한 할 일 복구 |
+| `history` | 추가·수정·완료·삭제·복구 변경 이력 조회 |
 | `summary` | 기간별 진행률 요약 (기본: 최근 7일) |
 
 로그인한 계정 **본인의 할 일만** 다룹니다 (Supabase RLS 보안 규칙).

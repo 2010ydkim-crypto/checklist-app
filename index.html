@@ -228,7 +228,7 @@ function fail(err, what) {
 
 async function loadItems() {
   setSync('불러오는 중…');
-  const { data, error } = await db.from(TABLE).select('*')
+  const { data, error } = await db.from(TABLE).select('*').is('deleted_at', null)
     .order('date', { ascending: true }).order('created_at', { ascending: true });
   if (error) { setSync('불러오기 실패'); alert('항목을 불러오지 못했습니다.\n' + error.message); return; }
   items = data;
@@ -255,7 +255,8 @@ async function deleteItems(list) {
   if (!list.length) return;
   const ids = list.map(i => i.id);
   items = items.filter(i => !ids.includes(i.id)); render(); setSync('저장 중…');
-  const { error } = await db.from(TABLE).delete().in('id', ids);
+  // 행을 지우지 않고 삭제 시각만 기록 (변경 이력은 checklist_history 에 자동 저장)
+  const { error } = await db.from(TABLE).update({ deleted_at: new Date().toISOString() }).in('id', ids);
   if (error) return fail(error, '삭제');
   setSync('저장됨 ✓');
 }
@@ -475,7 +476,7 @@ $('filters').addEventListener('click', e => {
 $('clearDone').addEventListener('click', () => deleteItems(visibleItems().filter(i => i.done)));
 
 $('resetBtn').addEventListener('click', () => {
-  if (items.length && confirm('모든 날짜의 항목을 클라우드에서 삭제할까요? 되돌릴 수 없습니다.')) deleteItems([...items]);
+  if (items.length && confirm('모든 날짜의 항목을 삭제할까요? (삭제 기록은 히스토리에 남습니다)')) deleteItems([...items]);
 });
 
 $('exportBtn').addEventListener('click', async () => {

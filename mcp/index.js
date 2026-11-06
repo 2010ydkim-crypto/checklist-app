@@ -73,7 +73,7 @@ function formatByDate(items) {
 const pick = i => ({ id: i.id, text: i.text, done: i.done, date: i.date });
 
 /* ---------- MCP 서버 ---------- */
-const server = new McpServer({ name: 'checklist', version: '1.0.0' });
+const server = new McpServer({ name: 'checklist', version: '1.1.0' });
 
 server.registerTool('list_items', {
   title: '할 일 목록 조회',
@@ -84,7 +84,8 @@ server.registerTool('list_items', {
     from: dateSchema.optional().describe('기간 시작일 (YYYY-MM-DD)'),
     to: dateSchema.optional().describe('기간 종료일 (YYYY-MM-DD)'),
     all: z.boolean().optional().describe('true 면 모든 날짜의 할 일'),
-    status: z.enum(['all', 'todo', 'done']).optional().describe('all(기본) / todo(진행 중) / done(완료)'),
+    status: z.enum(['all', 'todo', 'done', 'deleted']).optional()
+      .describe('all(기본) / todo(진행 중) / done(완료) / deleted(삭제된 항목, 복구용)'),
   },
   annotations: { readOnlyHint: true },
 }, async ({ date, from, to, all, status = 'all' }) => {
@@ -104,6 +105,7 @@ server.registerTool('list_items', {
     } else {
       scope = '전체 기간';
     }
+    q = status === 'deleted' ? q.not('deleted_at', 'is', null) : q.is('deleted_at', null);
     if (status === 'todo') q = q.eq('done', false);
     if (status === 'done') q = q.eq('done', true);
     const { data, error } = await q;
@@ -146,16 +148,18 @@ server.registerTool('update_item', {
     await ensureLogin();
     const changes = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
     if (!Object.keys(changes).length) throw new Error('바꿀 내용(done, text, date 중 하나 이상)을 지정하세요.');
-    const { data, error } = await db.from(TABLE).update(changes).eq('id', id).select('id, text, done, date');
+    const { data, error } = await db.from(TABLE).update(changes).eq('id', id).is('deleted_at', null)
+      .select('id, text, done, date');
     if (error) throw error;
-    if (!data.length) throw new Error('해당 id 의 할 일을 찾을 수 없습니다.');
+    if (!data.length) throw new Error('해당 id 의 할 일을 찾을 수 없습니다 (삭제된 항목이면 restore_items 로 먼저 복구하세요).');
     return ok(`수정했습니다: ${pretty(data[0].date)} ${row(data[0])}`, { item: pick(data[0]) });
   } catch (e) { return fail(e); }
 });
 
 server.registerTool('delete_items', {
   title: '할 일 삭제',
-  description: '할 일을 삭제합니다. 되돌릴 수 없으므로 사용자가 삭제를 원할 때만 사용하세요.',
+  description: '할 일을 삭제합니다. 사용자가 삭제를 원할 때만 사용하세요. '
+    + '행은 지워지지 않고 삭제 표시만 되며, 이력이 남아 restore_items 로 복구할 수 있습니다.',
   inputSchema: {
     ids: z.array(z.string().uuid()).min(1).max(100).describe('삭제할 할 일 id 목록'),
   },
@@ -163,10 +167,71 @@ server.registerTool('delete_items', {
 }, async ({ ids }) => {
   try {
     await ensureLogin();
-    const { data, error } = await db.from(TABLE).delete().in('id', ids).select('id, text, done, date');
+    const { data, error } = await db.from(TABLE).update({ deleted_at: new Date().toISOString() })
+      .in('id', ids).is('deleted_at', null).select('id, text, done, date');
     if (error) throw error;
-    return ok(data.length ? `${data.length}개 삭제했습니다.\n${data.map(row).join('\n')}` : '삭제된 항목이 없습니다 (id 확인 필요).',
+    return ok(data.length ? `${data.length}개 삭제했습니다 (히스토리에 기록됨, 복구 가능).\n${data.map(row).join('\n')}` : '삭제된 항목이 없습니다 (id 확인 필요).',
       { deleted: data.map(pick) });
+  } catch (e) { return fail(e); }
+});
+
+server.registerTool('restore_items', {
+  title: '삭제한 할 일 복구',
+  description: '삭제한 할 일을 되살립니다. id 는 list_items(status=deleted) 또는 history 결과에서 확인하세요.',
+  inputSchema: {
+    ids: z.array(z.string().uuid()).min(1).max(100).describe('복구할 할 일 id 목록'),
+  },
+}, async ({ ids }) => {
+  try {
+    await ensureLogin();
+    const { data, error } = await db.from(TABLE).update({ deleted_at: null })
+      .in('id', ids).not('deleted_at', 'is', null).select('id, text, done, date');
+    if (error) throw error;
+    return ok(data.length
+      ? `${data.length}개 복구했습니다.\n${data.map(i => `${pretty(i.date)} ${row(i)}`).join('\n')}`
+      : '복구된 항목이 없습니다 (삭제된 항목의 id 인지 확인하세요).',
+      { restored: data.map(pick) });
+  } catch (e) { return fail(e); }
+});
+
+const ACTION = { insert: '추가', update: '수정', delete: '삭제', restore: '복구', purge: '영구 삭제' };
+function describeChange(h) {
+  const o = h.old_data || {}, n = h.new_data || {};
+  const cur = h.new_data || h.old_data || {};
+  if (h.action !== 'update') return `"${cur.text}" (${cur.date})`;
+  const parts = [];
+  if (o.text !== n.text) parts.push(`내용 "${o.text}" → "${n.text}"`);
+  if (o.done !== n.done) parts.push(n.done ? '완료 체크' : '완료 해제');
+  if (o.date !== n.date) parts.push(`날짜 ${o.date} → ${n.date}`);
+  return `"${n.text}" — ${parts.join(', ') || '기타 변경'}`;
+}
+
+server.registerTool('history', {
+  title: '변경 이력 조회',
+  description: '할 일의 추가·수정·완료·삭제·복구 이력을 최신순으로 보여줍니다. '
+    + 'item_id 로 한 항목의 이력만, from/to 로 변경된 기간을 지정할 수 있습니다.',
+  inputSchema: {
+    item_id: z.string().uuid().optional().describe('특정 할 일 id'),
+    from: dateSchema.optional().describe('이 날짜(YYYY-MM-DD)부터 변경된 것'),
+    to: dateSchema.optional().describe('이 날짜(YYYY-MM-DD)까지 변경된 것'),
+    limit: z.number().int().min(1).max(200).optional().describe('최대 개수 (기본 30)'),
+  },
+  annotations: { readOnlyHint: true },
+}, async ({ item_id, from, to, limit = 30 }) => {
+  try {
+    await ensureLogin();
+    let q = db.from('checklist_history').select('item_id, action, old_data, new_data, changed_at')
+      .order('changed_at', { ascending: false }).order('id', { ascending: false }).limit(limit);
+    if (item_id) q = q.eq('item_id', item_id);
+    if (from) q = q.gte('changed_at', new Date(`${from}T00:00:00`).toISOString());
+    if (to) q = q.lt('changed_at', new Date(new Date(`${to}T00:00:00`).getTime() + 864e5).toISOString());
+    const { data, error } = await q;
+    if (error) throw error;
+    const when = t => new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' });
+    const lines = data.map(h => `${when(h.changed_at)}  [${ACTION[h.action] || h.action}] ${describeChange(h)}  (id: ${h.item_id})`);
+    return ok(lines.length ? lines.join('\n') : '해당하는 이력이 없습니다.', {
+      history: data.map(h => ({ item_id: h.item_id, action: h.action, changed_at: h.changed_at, before: h.old_data, after: h.new_data })),
+    });
   } catch (e) { return fail(e); }
 });
 
@@ -183,7 +248,8 @@ server.registerTool('summary', {
     await ensureLogin();
     const end = to || today();
     const start = from || (() => { const d = new Date(); d.setDate(d.getDate() - 6); return ymd(d); })();
-    const { data, error } = await db.from(TABLE).select('date, done').gte('date', start).lte('date', end);
+    const { data, error } = await db.from(TABLE).select('date, done').is('deleted_at', null)
+      .gte('date', start).lte('date', end);
     if (error) throw error;
     const byDate = {};
     data.forEach(i => { (byDate[i.date] ||= { total: 0, done: 0 }).total++; if (i.done) byDate[i.date].done++; });
